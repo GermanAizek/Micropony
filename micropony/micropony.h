@@ -3,21 +3,23 @@
 #include <windows.h>
 #include <Shlobj.h>
 #include <iostream>
-#include <fstream>
 #include <string>
 #include <vector>
+#include "SimpleIni.h"
+#include "curl.h"
 
 struct List
 {
-	std::vector<TCHAR *> paths;
-	std::vector<TCHAR *> params;
+	CSimpleIniA::TNamesDepend keys;
+	CSimpleIniA::TNamesDepend values;
+	CSimpleIniA::TNamesDepend sections;
 };
 
 struct Report
 {
-	std::vector<TCHAR *> paths;
-	std::vector<TCHAR *> params;
-	std::vector<TCHAR *> values;
+	std::vector<std::string> paths;
+	std::vector<std::string> params;
+	std::vector<std::string> values;
 
 	std::vector<LPCWSTR> names;
 	std::vector<LPCWSTR> catalogs;
@@ -36,6 +38,7 @@ TCHAR* getPath(unsigned int CSIDL)
 	}
 }
 
+/*
 std::vector<WIN32_FIND_DATA>& getCatalog(LPCWSTR path) {
 	HANDLE search_file;
 	WIN32_FIND_DATA aa;
@@ -60,48 +63,49 @@ LPCWSTR grabFile(LPCWSTR path, LPCWSTR namefile)
 		}
 	}
 }
+*/
 
-TCHAR * getKeyValue(HKEY reg, const wchar_t * path, const wchar_t * param)
+std::string getKeyValue(HKEY reg, LPCSTR path, LPCSTR param)
 {
+	DWORD dwType = REG_SZ;
 	HKEY rKey;
-	TCHAR Reget[512];
-	DWORD RegetPath = sizeof(Reget);
+	char value[1024];
+	DWORD value_length = sizeof(value);
 	RegOpenKeyEx(reg, path, 0, KEY_QUERY_VALUE, &rKey);
-	RegQueryValueEx(rKey, param, NULL, NULL, (LPBYTE)Reget, &RegetPath);
+	RegQueryValueEx(rKey, param, NULL, &dwType, (LPBYTE)&value, &value_length);
 	RegCloseKey(rKey);
 
-	return Reget;
+	return std::string(value);
 }
 
-List* parseList(const char* name)
+int sendMail(std::string text)
 {
-	std::ifstream conf(name);
+	CURL *curl;
+	CURLcode curl_code;
+	//FILE *message;
+	//message = fopen(mail_path, "r");
+	struct curl_slist *recipients = nullptr; // NULL
 
-	if (!conf) {
-		std::clog << "[ERROR] " << name << " not find!\n";
-		return nullptr;
+	curl = curl_easy_init();
+	if (curl)
+	{
+		curl_easy_setopt(curl, CURLOPT_USERNAME, "xxx"); // username
+		curl_easy_setopt(curl, CURLOPT_PASSWORD, "xxx"); // pass
+		curl_easy_setopt(curl, CURLOPT_URL, "yyy:ppp"); // url smtp
+
+		recipients = curl_slist_append(recipients, "ttt"); // to
+		curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
+		curl_easy_setopt(curl, CURLOPT_MAIL_FROM, "micropony@bot"); // from
+		curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+		curl_easy_setopt(curl, CURLOPT_READDATA, text);
+		curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+		curl_code = curl_easy_perform(curl);
+
+		curl_slist_free_all(recipients);
+		curl_easy_cleanup(curl);
 	}
 
-	WCHAR* dataPath = new WCHAR[MAX_PATH];
-	WCHAR* dataParam = new WCHAR[MAX_PATH];
-
-	LPWSTR path = nullptr, param = nullptr;
-
-	GetPrivateProfileString(TEXT("PATH_PARAM"), (LPWSTR)path, TEXT("None"), (LPWSTR)dataPath, MAX_PATH, (LPWSTR)name);
-	GetPrivateProfileString(TEXT("PATH_PARAM"), (LPWSTR)param, TEXT("None"), (LPWSTR)dataParam, MAX_PATH, (LPWSTR)name);
-
-	List list;
-	
-	wprintf(L"%s\n", name);
-	wprintf(L"%s %s\n", dataPath, path);
-	wprintf(L"%s %s\n", dataParam, param);
-	//std::wcout << "Parsing " << name << " ...\n";
-	//std::wcout << "Parsing " << data_path << params1 << " ...\n";
-	//std::wcout << "Parsing " << data_param << params2 << " ...\n";
-	list.paths.push_back(dataPath);
-	list.params.push_back(dataParam);
-
-	delete dataPath, dataParam;
-
-	return &list;
+	return curl_code;
 }
