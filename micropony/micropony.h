@@ -5,6 +5,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fstream>
+#include <sstream>
+
 #include "SimpleIni.h"
 #include "curl.h"
 
@@ -20,50 +23,32 @@ struct Report
 	std::vector<std::string> paths;
 	std::vector<std::string> params;
 	std::vector<std::string> values;
-
-	std::vector<LPCWSTR> names;
-	std::vector<LPCWSTR> catalogs;
 };
 
-// Get path
-TCHAR* getPath(unsigned int CSIDL)
+// get path csidl
+char* getPath(int CSIDL)
 {
-	TCHAR szPath[MAX_PATH];
+	char szPath[MAX_PATH];
 
-	if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL, NULL, 0, szPath))) {
+	if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL, NULL, 0, szPath)))
 		return szPath;
-	}
-	else {
-		return nullptr;
-	}
+	else
+		return NULL;
 }
 
-/*
-std::vector<WIN32_FIND_DATA>& getCatalog(LPCWSTR path) {
-	HANDLE search_file;
+
+std::vector<WIN32_FIND_DATA> grabFile(LPCSTR path)//, LPCSTR namefile)
+{
+	HANDLE searchFile;
 	WIN32_FIND_DATA aa;
 	std::vector<WIN32_FIND_DATA> vecFiles;
 
-	search_file = FindFirstFile(path, &aa);
-	while (FindNextFile(search_file, &aa) != NULL) {
+	searchFile = FindFirstFile(path, &aa);
+	while (FindNextFile(searchFile, &aa) != NULL)
 		vecFiles.push_back(aa);
-	}
 
 	return vecFiles;
 }
-
-
-LPCWSTR grabFile(LPCWSTR path, LPCWSTR namefile)
-{
-	LPCWSTR catalog = (getPath(CSIDL_APPDATA) + std::wstring(path)).c_str();
-	//std::wcout << catalog << '\n';
-	for (auto& name : getCatalog(catalog)) {
-		if (name.cFileName == namefile && name.cFileName != NULL) {
-			return name.cFileName, catalog;
-		}
-	}
-}
-*/
 
 std::string getKeyValue(HKEY reg, LPCSTR path, LPCSTR param)
 {
@@ -78,6 +63,7 @@ std::string getKeyValue(HKEY reg, LPCSTR path, LPCSTR param)
 	return std::string(value);
 }
 
+/*
 int sendMail(std::string text)
 {
 	CURL *curl;
@@ -109,3 +95,4 @@ int sendMail(std::string text)
 
 	return curl_code;
 }
+*/
